@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String?    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole   @default(USER)
+  accounts      Account[]
+  tasks         Task[]
+  categories    Category[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String
+  description String?      @db.Text
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories        Category[]
+  TaskStatusHistory TaskStatusHistory[]
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  image       String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+}
+
+model TaskStatusHistory {
+  id        String     @id @default(cuid())
+  taskId    String
+  status    TaskStatus @default(TODO)
+  changedAt DateTime   @default(now())
+  task      Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// model CategoriesOnTasks {
+//   task       Task     @relation(fields: [taskId], references: [id])
+//   taskId     String // relation scalar field (used in the `@relation` attribute above)
+//   category   Category @relation(fields: [categoryId], references: [id])
+//   categoryId String // relation scalar field (used in the `@relation` attribute above)
+//   assignedAt DateTime @default(now())
+//
+//   @@id([taskId, categoryId])
+// }
